@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra Cứu Thông Tin Vé Tàu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0fdf4; /* Light green/blue background */
+            background-image: radial-gradient(#e0f2fe 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        /* Custom scrollbar for the table */
+        .table-container::-webkit-scrollbar {
+            height: 8px;
+        }
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 text-gray-800 flex flex-col items-center">
+
+    <div class="w-full max-w-5xl bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 mt-8 md:mt-12">
+        
+        <!-- Header -->
+        <div class="bg-blue-600 p-6 md:p-8 text-white text-center">
+            <h1 class="text-2xl md:text-3xl font-bold mb-2 tracking-tight">Hệ Thống Tra Cứu Vé Tàu</h1>
+            <p class="text-blue-100 text-sm md:text-base">Nhập họ và tên hành khách để xem thông tin chi tiết các chuyến đi.</p>
+        </div>
+
+        <!-- Search Box -->
+        <div class="p-6 md:p-8 border-b border-gray-100 bg-gray-50">
+            <div class="max-w-xl mx-auto flex flex-col sm:flex-row gap-3">
+                <div class="relative flex-grow">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <input type="text" id="searchInput" placeholder="Nhập họ và tên (VD: Nguyễn Nguyên)" 
+                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all text-sm md:text-base">
+                </div>
+                <button id="searchBtn" class="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center gap-2">
+                    Tra cứu
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="p-6 md:p-8 hidden">
+            
+            <!-- Not Found Message -->
+            <div id="notFoundMsg" class="hidden bg-red-50 text-red-600 p-4 rounded-lg border border-red-100 text-center flex flex-col items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Không tìm thấy thông tin vé của hành khách này. Vui lòng kiểm tra lại họ tên.</span>
+            </div>
+
+            <!-- Results Table -->
+            <div id="tableContainer" class="hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800">Kết quả tra cứu</h2>
+                    <span id="resultCount" class="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium"></span>
+                </div>
+                
+                <div class="table-container overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                    <table class="w-full text-left border-collapse whitespace-nowrap">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-700 text-sm md:text-base border-b border-gray-200">
+                                <th class="px-4 py-3 font-semibold">Họ tên</th>
+                                <th class="px-4 py-3 font-semibold">Tuyến</th>
+                                <th class="px-4 py-3 font-semibold">Ngày đi</th>
+                                <th class="px-4 py-3 font-semibold">Đoàn tàu</th>
+                                <th class="px-4 py-3 font-semibold">Toa</th>
+                                <th class="px-4 py-3 font-semibold text-center">Ghế</th>
+                                <th class="px-4 py-3 font-semibold text-right">Giá vé</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="text-sm md:text-base divide-y divide-gray-100">
+                            <!-- Rows will be injected here via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Seat Map Section (Modified to hold multiple maps) -->
+            <div id="seatMapContainer" class="hidden mt-8 flex flex-col gap-6">
+                <!-- Sơ đồ các chuyến sẽ được render tự động vào đây -->
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // Hardcoded data
+        const ticketData = [
+            { name: 'Nguyễn Nguyên', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '04/02/2027', train: 'SE2', carriage: '2', seat: '34', price: '1,810,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '13/02/2027', train: 'SE25', carriage: '2', seat: '16', price: '1,383,000 VNĐ' }] },
+            { name: 'Trần Thị Kim Tiến', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '04/02/2027', train: 'SE2', carriage: '2', seat: '33', price: '1,810,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '13/02/2027', train: 'SE25', carriage: '2', seat: '15', price: '1,383,000 VNĐ' }] },
+            { name: 'Võ Văn Hưng', tickets: [{ type: 'Quảng Ngãi - Sài Gòn', date: '13/02/2027', train: 'SE25', carriage: '2', seat: '12', price: '1,456,000 VNĐ' }] },
+            { name: 'Nguyễn Hoàng Đăng Khoa', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '31/01/2027', train: 'SE26', carriage: '2', seat: '45', price: '1,311,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '13/02/2027', train: 'SE25', carriage: '2', seat: '11', price: '1,311,000 VNĐ' }] },
+            { name: 'Nguyễn Thị Hải Yến', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '31/01/2027', train: 'SE26', carriage: '2', seat: '51', price: '1,311,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '13/02/2027', train: 'SE25', carriage: '2', seat: '14', price: '1,311,000 VNĐ' }] },
+            { name: 'Võ Ngọc Khánh Linh', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '31/01/2027', train: 'SE26', carriage: '2', seat: '52', price: '1,456,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '13/02/2027', train: 'SE25', carriage: '2', seat: '13', price: '1,456,000 VNĐ' }] },
+            { name: 'Võ Văn Khánh Hòa', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '31/01/2027', train: 'SE26', carriage: '2', seat: '58', price: '1,456,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '13/02/2027', train: 'SE25', carriage: '2', seat: '24', price: '1,383,000 VNĐ' }] },
+            { name: 'Lương Hữu Tuyền', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '03/02/2027', train: 'SE4', carriage: '2', seat: '24', price: '1,848,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '11/02/2027', train: 'SE1', carriage: '2', seat: '25', price: '1,768,000 VNĐ' }] },
+            { name: 'Nguyễn Đăng Thành Phương', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '03/02/2027', train: 'SE4', carriage: '2', seat: '23', price: '1,848,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '11/02/2027', train: 'SE1', carriage: '2', seat: '23', price: '1,749,000 VNĐ' }] },
+            { name: 'Nguyễn Thị Diệu', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '03/02/2027', train: 'SE4', carriage: '2', seat: '22', price: '1,848,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '11/02/2027', train: 'SE1', carriage: '2', seat: '26', price: '1,768,000 VNĐ' }] },
+            { name: 'Nguyễn Thị Hường', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '03/02/2027', train: 'SE4', carriage: '2', seat: '21', price: '1,848,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '13/02/2027', train: 'SE25', carriage: '2', seat: '8', price: '1,383,000 VNĐ' }] },
+            { name: 'Nguyễn Tiến', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '03/02/2027', train: 'SE4', carriage: '2', seat: '25', price: '1,868,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '13/02/2027', train: 'SE25', carriage: '2', seat: '10', price: '1,383,000 VNĐ' }] },
+            { name: 'Nguyễn Thị Thủy', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '03/02/2027', train: 'SE4', carriage: '2', seat: '20', price: '1,848,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '13/02/2027', train: 'SE25', carriage: '2', seat: '9', price: '1,383,000 VNĐ' }] },
+            { name: 'Nguyễn Hoàng Uyên Thảo', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '03/02/2027', train: 'SE4', carriage: '2', seat: '19', price: '1,848,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '13/02/2027', train: 'SE25', carriage: '2', seat: '7', price: '1,383,000 VNĐ' }] },
+            { name: 'Nguyễn Thị Phấn', tickets: [{ type: 'Sài Gòn - Quảng Ngãi', date: '31/01/2027', train: 'SE26', carriage: '2', seat: '47', price: '1,456,000 VNĐ' }, { type: 'Quảng Ngãi - Sài Gòn', date: '11/02/2027', train: 'SE1', carriage: '2', seat: '27', price: '1,768,000 VNĐ' }] }
+        ];
+
+        // DOM Elements
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const resultsSection = document.getElementById('resultsSection');
+        const notFoundMsg = document.getElementById('notFoundMsg');
+        const tableContainer = document.getElementById('tableContainer');
+        const tableBody = document.getElementById('tableBody');
+        const resultCount = document.getElementById('resultCount');
+
+        const seatMapContainer = document.getElementById('seatMapContainer');
+        const seatMapRenderArea = document.getElementById('seatMapRenderArea');
+
+        const lunarDates = {
+            '31/01/2027': '24/12 Âm lịch',
+            '03/02/2027': '27/12 Âm lịch',
+            '04/02/2027': '28/12 Âm lịch',
+            '11/02/2027': '06/01 Âm lịch',
+            '13/02/2027': '08/01 Âm lịch'
+        };
+
+        // Layout các hàng ghế theo mẫu ảnh
+        const seatMapRows = [
+            [1, 8, 9, 16, 17, 24, 25, 32, 'gap', 33, 40, 41, 48, 49, 56, 57, 64],
+            [2, 7, 10, 15, 18, 23, 26, 31, 'gap', 34, 39, 42, 47, 50, 55, 58, 63],
+            'aisle',
+            [3, 6, 11, 14, 19, 22, 27, 30, 'gap', 35, 38, 43, 46, 51, 54, 59, 62],
+            [4, 5, 12, 13, 20, 21, 28, 29, 'gap', 36, 37, 44, 45, 52, 53, 60, 61]
+        ];
+
+        const renderSeatMap = (container, titleText, passengerSeats, trainInfo) => {
+            const mapWrapper = document.createElement('div');
+            mapWrapper.className = 'border-2 border-[#2b5c8f] rounded-xl p-4 md:p-6 bg-white overflow-x-auto shadow-sm';
+            
+            const titleEl = document.createElement('h3');
+            titleEl.className = 'text-lg md:text-xl font-bold text-[#2b5c8f] text-center mb-6';
+            titleEl.innerHTML = `${titleText} <br><span class="text-sm font-normal text-gray-600 block mt-1">Đoàn tàu: <span class="font-semibold text-blue-700">${trainInfo.train}</span> - Toa số: <span class="font-semibold text-blue-700">${trainInfo.carriage}</span> (Ngồi mềm điều hòa)</span>`;
+            mapWrapper.appendChild(titleEl);
+
+            const mapAreaCenter = document.createElement('div');
+            mapAreaCenter.className = 'min-w-[700px] flex justify-center';
+            
+            const renderArea = document.createElement('div');
+            renderArea.className = 'flex flex-col gap-2 px-6 py-4 border-[3px] border-[#2b5c8f] rounded-[1rem] bg-white shadow-inner';
+
+            seatMapRows.forEach(row => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'flex gap-[6px] items-stretch';
+                
+                if (row === 'aisle') {
+                    rowDiv.className = 'h-8 md:h-10 w-full'; // Lối đi ở giữa
+                    renderArea.appendChild(rowDiv);
+                    return;
+                }
+
+                row.forEach(seat => {
+                    const seatDiv = document.createElement('div');
+                    
+                    if (seat === 'gap') {
+                        seatDiv.className = 'w-4 md:w-5 bg-gray-500 rounded-[2px] mx-1 md:mx-2'; // Khối chia cắt ngang ở giữa
+                    } else {
+                        const isHighlighted = passengerSeats.includes(seat.toString());
+                        
+                        let classes = 'w-9 h-10 md:w-11 md:h-12 border flex items-center justify-center font-bold text-xs md:text-sm transition-all bg-white ';
+                        
+                        if (isHighlighted) {
+                            classes += 'bg-[#8ab645] border-[#749b38] text-white shadow-md z-10'; 
+                            seatDiv.style.backgroundColor = '#8ab645';
+                            seatDiv.style.color = '#fff';
+                        } else {
+                            classes += 'text-gray-700'; 
+                        }
+                        
+                        seatDiv.className = classes;
+                        // CSS tái hiện kiểu dáng tay vịn 2 bên của ghế
+                        seatDiv.style.borderLeftWidth = '4px';
+                        seatDiv.style.borderRightWidth = '4px';
+                        seatDiv.style.borderLeftColor = isHighlighted ? '#749b38' : '#8a7c64';
+                        seatDiv.style.borderRightColor = isHighlighted ? '#749b38' : '#8a7c64';
+                        seatDiv.style.borderTopColor = isHighlighted ? '#749b38' : '#d1d5db';
+                        seatDiv.style.borderBottomColor = isHighlighted ? '#749b38' : '#d1d5db';
+                        seatDiv.style.borderRadius = '3px';
+
+                        seatDiv.textContent = seat;
+                    }
+                    rowDiv.appendChild(seatDiv);
+                });
+                renderArea.appendChild(rowDiv);
+            });
+            
+            mapAreaCenter.appendChild(renderArea);
+            mapWrapper.appendChild(mapAreaCenter);
+            container.appendChild(mapWrapper);
+        };
+
+        // Function to perform search
+        const performSearch = () => {
+            const query = searchInput.value.trim().toLowerCase();
+            
+            if (!query) return;
+
+            resultsSection.classList.remove('hidden');
+
+            const matchedPassengers = ticketData.filter(person => 
+                person.name.toLowerCase().includes(query)
+            );
+
+            tableBody.innerHTML = '';
+            seatMapContainer.innerHTML = ''; // Clear existing maps
+
+            if (matchedPassengers.length === 0) {
+                notFoundMsg.classList.remove('hidden');
+                tableContainer.classList.add('hidden');
+                seatMapContainer.classList.add('hidden');
+            } else {
+                notFoundMsg.classList.add('hidden');
+                tableContainer.classList.remove('hidden');
+                seatMapContainer.classList.remove('hidden');
+
+                let totalTickets = 0;
+                let tripsData = {};
+
+                matchedPassengers.forEach((person, personIndex) => {
+                    person.tickets.forEach((ticket, ticketIndex) => {
+                        totalTickets++;
+                        
+                        // Group tickets by route and date for separate seat maps
+                        let tripKey = `${ticket.type}_${ticket.date}_${ticket.train}`;
+                        if (!tripsData[tripKey]) {
+                            // Determine label prefix
+                            let directionLabel = ticket.type.includes('Sài Gòn - Quảng Ngãi') ? 'Chiều đi' : 'Chiều về';
+                            
+                            tripsData[tripKey] = {
+                                title: `Sơ đồ toa tàu - ${directionLabel}: ${ticket.type} (Ngày ${ticket.date})`,
+                                train: ticket.train,
+                                carriage: ticket.carriage,
+                                seats: []
+                            };
+                        }
+                        tripsData[tripKey].seats.push(ticket.seat);
+                        
+                        const tr = document.createElement('tr');
+                        tr.className = `hover:bg-blue-50 transition-colors ${totalTickets % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`;
+                        
+                        const lunarDateStr = lunarDates[ticket.date] ? `<br><span class="text-[13px] text-gray-500 font-normal whitespace-nowrap">${lunarDates[ticket.date]}</span>` : '';
+
+                        tr.innerHTML = `
+                            <td class="px-4 py-3 text-gray-800 font-medium">
+                                ${ticketIndex === 0 ? person.name : '<span class="text-gray-400">"</span>'}
+                            </td>
+                            <td class="px-4 py-3 text-gray-600">${ticket.type}</td>
+                            <td class="px-4 py-3 text-gray-600 font-medium">${ticket.date} ${lunarDateStr}</td>
+                            <td class="px-4 py-3">
+                                <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">
+                                    ${ticket.train}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-gray-600">${ticket.carriage}</td>
+                            <td class="px-4 py-3 font-semibold text-gray-800 text-center">${ticket.seat}</td>
+                            <td class="px-4 py-3 text-right font-semibold text-red-600">${ticket.price}</td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                });
+
+                resultCount.textContent = `Tìm thấy ${totalTickets} vé`;
+                
+                // Render a separate map for each trip group
+                Object.values(tripsData).forEach(trip => {
+                    renderSeatMap(seatMapContainer, trip.title, trip.seats, { train: trip.train, carriage: trip.carriage });
+                });
+            }
+        };
+
+        // Event Listeners
+        searchBtn.addEventListener('click', performSearch);
+
+        searchInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        // Optional: auto-focus input on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            searchInput.focus();
+        });
+    </script>
+</body>
+</html>
